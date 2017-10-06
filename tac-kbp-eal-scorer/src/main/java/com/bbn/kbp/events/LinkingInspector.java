@@ -59,7 +59,7 @@ final class LinkingInspector implements
 
         final Symbol docid = item.key().docID();
 
-        final File docOutput = new File(outputDir, docid.asString());
+        final File docOutput = new File(new File(outputDir, "perDocument"), docid.asString());
         docOutput.mkdirs();
         final PrintWriter outputWriter;
         try {

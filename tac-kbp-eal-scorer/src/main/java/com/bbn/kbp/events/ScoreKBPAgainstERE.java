@@ -662,8 +662,10 @@ public final class ScoreKBPAgainstERE {
       final ImmutableMap<Symbol, Integer> falsePositives = this.falsePositives.build();
       final ImmutableMap<Symbol, Integer> truePositives = this.truePositives.build();
       final ImmutableMap<Symbol, Integer> falseNegatives = this.falseNegatives.build();
+
+      final File perDocDir = new File(outputDir, "perDocument");
       for (final Symbol docid : scores.keySet()) {
-        final File docDir = new File(outputDir, docid.asString());
+        final File docDir = new File(perDocDir, docid.asString());
         docDir.mkdirs();
         final File docScore = new File(docDir, "argScores.txt");
         // avoid dividing by zero
