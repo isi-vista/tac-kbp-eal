@@ -115,9 +115,10 @@ public class LinkF1 {
     // note we divide linkPrecisionSum by the number of predicted items,
     // but the others by the number of gold items. This is because missing items
     // hurt recall but not precision
+    // we scale by 100 for easier reading
     final ExplicitFMeasureInfo explicitFMeasureInfo =
-        ExplicitFMeasureInfo.of(linkPrecisionSum / predictedItems.size(),
-            linkRecallSum / keyItems.size(), linkF1Sum / keyItems.size());
+        ExplicitFMeasureInfo.of(100.0 * linkPrecisionSum / predictedItems.size(),
+            100.0 * linkRecallSum / keyItems.size(), 100.0 * linkF1Sum / keyItems.size());
     log.info("Final document linking score: {}", explicitFMeasureInfo);
     return explicitFMeasureInfo;
   }
