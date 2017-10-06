@@ -8,8 +8,10 @@ For those just after the official eval scores, these can be found as:
 Bootstrapping was done with 10,000 samples over the corpus.
 
 At the highest level each scoring directory has:
-   * withRealis/ - directory with scores counting realis (the official way)
-   * noRealis/ - directory with scorings ignoring realis (diagnostic)
+   * withRealis/ - directory with scores requiring correct ACTUAL, GENERIC, OTHER determination
+                        for alignment between system and reference (the official way)
+   * noRealis/ - directory with scorings ignoring realis *not* requiring correct ACTUAL, GENERIC,
+                        OTHER determination for alignment between system and reference (diagnostic)
    * alignmentFailures/ - directory with information on arguments which failed to
                              align to the CoreNLP parse used for lenient scoring.
                              This is purely diagnostic.
@@ -17,15 +19,17 @@ At the highest level each scoring directory has:
 Each of the first two directories has the following structure:
     argScores/ - bootstrapped argument scores (official argument metric)
     linkScores/ - bootstrapped linking scores (official linking metric)
-    typeF/- bootstrapped argument F scores broken down by type (diagnostic)
-    typeRoleF/- bootstrapped argument F scores broken down by type and role (diagnostic)
+    typeF/- bootstrapped argument F scores broken down by event type (diagnostic; note type here
+                includes both RichERE type and sub-type)
+    typeRoleF/- bootstrapped argument F scores broken down by event type and role (diagnostic)
     mentionTypeF/ - bootstrapped argument F scores broken down by
                        argument mention type (diagnostic)
     perDocument/ - contains argument and linking scores for each document
                        as well as a log of all errors encountered in that document.
     nonBootstrapped/ - contains argument and linking scores over the eval
-                           corpus without bootstrapping. *These are not the
-                           official eval scores* (see above)
+                           corpus without bootstrapping. Also includes argument precision,
+                            recall, and F1 scores to supplemental the official argument scoring
+                            metric. *These are not the official eval scores* (see above)
 
 Each of the bootstrapped directories has the following files:
    * X.bootstrapped.txt - human readable files with 0.5%, 2.5%, 5.0%, 25.0%,
