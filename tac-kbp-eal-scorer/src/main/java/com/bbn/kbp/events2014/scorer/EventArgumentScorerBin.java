@@ -50,7 +50,7 @@ public class EventArgumentScorerBin {
               .argumentOutput(systemAnswerStore.readOrEmpty(docid)).build());
 
       for (final KBPScoringObserver<TypeRoleFillerRealis> scoringObserver : scoringObservers) {
-        final File docLogDir = new File(scorerToOutputDir.get(scoringObserver), docid.toString());
+        final File docLogDir = new File(new File(scorerToOutputDir.get(scoringObserver), "perDocument"), docid.toString());
         docLogDir.mkdirs();
         scoringObserver.observeDocument(scoringAlignment, docLogDir);
       }

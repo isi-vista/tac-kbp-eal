@@ -228,7 +228,7 @@ public final class ScoreKBPAgainstERE {
 
     // write scoring README
     Files.asCharSink(new File(outputDir, "README.scorer.txt"), Charsets.UTF_8).write(
-      Resources.asCharSource(Resources.getResource("/README.scorer.txt"), Charsets.UTF_8)
+      Resources.asCharSource(Resources.getResource(ScoreKBPAgainstERE.class, "/README.scorer.txt"), Charsets.UTF_8)
           .read());
 
     // these will extract the scoring tuples from the KBP system input and ERE docs, respectively
@@ -342,6 +342,7 @@ public final class ScoreKBPAgainstERE {
         alignmentNode = transformed(inputAsSetsOfScoringTuples, EXACT_MATCH_ALIGNER);
 
     final File nonBootstrappedDir = new File(outputDir, "nonBootstrapped");
+    nonBootstrappedDir.mkdirs();
     // overall F score
     final AggregateBinaryFScoresInspector<DocLevelEventArg, DocLevelEventArg>
         scoreAndWriteOverallFScore =
