@@ -335,10 +335,12 @@ public final class ScoreKBPAgainstERE {
     final InspectorTreeNode<ProvenancedAlignment<DocLevelEventArg, DocLevelEventArg, DocLevelEventArg, DocLevelEventArg>>
         alignmentNode = transformed(inputAsSetsOfScoringTuples, EXACT_MATCH_ALIGNER);
 
+    final File nonBootstrappedDir = new File(outputDir, "nonBootstrapped");
     // overall F score
     final AggregateBinaryFScoresInspector<DocLevelEventArg, DocLevelEventArg>
         scoreAndWriteOverallFScore =
-        AggregateBinaryFScoresInspector.createWithScoringObservers("aggregateF.txt", outputDir,
+        AggregateBinaryFScoresInspector
+            .createWithScoringObservers("aggregateF.txt", nonBootstrappedDir,
             scoringEventObservers);
     inspect(alignmentNode).with(scoreAndWriteOverallFScore);
 
@@ -371,7 +373,7 @@ public final class ScoreKBPAgainstERE {
 
     // "arg" score with weighted TP/FP
     final ArgumentScoringInspector argScorer =
-        ArgumentScoringInspector.createOutputtingTo(outputDir);
+        ArgumentScoringInspector.createOutputtingTo(nonBootstrappedDir);
     inspect(alignmentNode).with(argScorer);
 
     // bootstrapped arg scores
@@ -652,6 +654,7 @@ public final class ScoreKBPAgainstERE {
           100 * scoreAggregator / Math.max(0.0 + aggregateFNs + aggregateTPs, 1.0);
       final String scoreString =
           String.format(scorePattern, aggregateTPs, aggregateFPs, aggregateFNs, overAllArgScore);
+
       Files.asCharSink(new File(outputDir, "argScores.txt"), Charsets.UTF_8).write(scoreString);
       final File jsonArgScores = new File(outputDir, "argScore.json");
       serializer.serializeTo(ArgScoreSummary.of(overAllArgScore,
