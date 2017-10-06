@@ -555,19 +555,19 @@ public class ScorerTest {
 
     final EALScorer2015Style.Result scoreNeitherCorrect = scorer.score(
         commonBuilder.answerKey(neitherCorrect).build());
-    assertEquals(0.25, scoreNeitherCorrect.linkResult().scaledLinkingScore(), .0001);
+    assertEquals(25.0, scoreNeitherCorrect.linkResult().scaledLinkingScore(), .0001);
 
     final EALScorer2015Style.Result scoreACorrect =
         scorer.score(commonBuilder.answerKey(aCorrect).build());
-    assertEquals((3.0 / 2.0) / 4.0, scoreACorrect.linkResult().scaledLinkingScore(), .0001);
+    assertEquals(100.0*(3.0 / 2.0) / 4.0, scoreACorrect.linkResult().scaledLinkingScore(), .0001);
 
     final EALScorer2015Style.Result scoreAPrimeCorrect =
         scorer.score(commonBuilder.answerKey(aPrimeCorrect).build());
-    assertEquals((2.0 / 3.0), scoreAPrimeCorrect.linkResult().scaledLinkingScore(), .0001);
+    assertEquals(100.0*(2.0 / 3.0), scoreAPrimeCorrect.linkResult().scaledLinkingScore(), .0001);
 
     final EALScorer2015Style.Result scoreBothCorrect =
         scorer.score(commonBuilder.answerKey(bothCorrect).build());
-    assertEquals(0.7, scoreBothCorrect.linkResult().scaledLinkingScore(), .0001);
+    assertEquals(70.0, scoreBothCorrect.linkResult().scaledLinkingScore(), .0001);
   }
 
   // utility methods

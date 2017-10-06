@@ -25,6 +25,7 @@ import com.bbn.bue.common.symbols.Symbol;
 import com.bbn.bue.common.symbols.SymbolUtils;
 import com.bbn.kbp.events.ontology.EREToKBPEventOntologyMapper;
 import com.bbn.kbp.events.ontology.SimpleEventOntologyMapper;
+import com.bbn.kbp.events2014.ArgumentOutput;
 import com.bbn.kbp.events2014.CharOffsetSpan;
 import com.bbn.kbp.events2014.DocumentSystemOutput2015;
 import com.bbn.kbp.events2014.KBPRealis;
@@ -147,6 +148,7 @@ public final class ScoreKBPAgainstERE {
   private final ResponsesAndLinkingFromKBPExtractorFactory
       responsesAndLinkingFromKBPExtractorFactory;
   private final Predicate<DocLevelEventArg> inScopePredicate;
+  private final boolean permitMissingSystemDocuments;
 
   @Inject
   ScoreKBPAgainstERE(
@@ -156,7 +158,8 @@ public final class ScoreKBPAgainstERE {
       ResponsesAndLinkingFromKBPExtractorFactory responsesAndLinkingFromKBPExtractorFactory,
       @DocIDsToScoreP Set<Symbol> docIdsToScore,
       @KeyFileMapP Map<Symbol, File> keyFilesMap,
-      Predicate<DocLevelEventArg> inScopePredicate) {
+      Predicate<DocLevelEventArg> inScopePredicate,
+      @PermitMissingSystemDocsP boolean permitMissingSystemDocuments) {
     this.params = checkNotNull(params);
     // we use a sorted map because the binding of plugins may be non-deterministic
     this.scoringEventObservers = ImmutableSortedMap.copyOf(scoringEventObservers);
@@ -165,6 +168,7 @@ public final class ScoreKBPAgainstERE {
     this.docIDsToScore = ImmutableSet.copyOf(docIdsToScore);
     this.goldDocIDToFileMap = ImmutableMap.copyOf(keyFilesMap);
     this.inScopePredicate = inScopePredicate;
+    this.permitMissingSystemDocuments = permitMissingSystemDocuments;
   }
 
   public void go() throws IOException {
@@ -207,6 +211,13 @@ public final class ScoreKBPAgainstERE {
 
   }
 
+  @Qualifier
+  @Target({ElementType.FIELD, ElementType.PARAMETER, ElementType.METHOD})
+  @Retention(RetentionPolicy.RUNTIME)
+  @interface PermitMissingSystemDocsP {
+
+  }
+
 
   void processSystem(SystemOutputStore outputStore, File outputDir) throws IOException {
     outputDir.mkdirs();
@@ -245,6 +256,7 @@ public final class ScoreKBPAgainstERE {
     // we want globally unique IDs here
     final ERELoader loader = ERELoader.builder().prefixDocIDToAllIDs(true).build();
 
+    final Set<Symbol> systemDocIds = outputStore.docIDs();
     for (Symbol docID : docIDsToScore) {
       // EvalHack - 2016 dry run contains some files for which Serif spuriously adds this document ID
       docID = Symbol.from(docID.asString().replace("-kbp", ""));
@@ -258,9 +270,25 @@ public final class ScoreKBPAgainstERE {
       if (!ereDoc.getDocId().replace("-kbp", "").equals(docID.asString().replace(".kbp", ""))) {
         log.warn("Fetched document ID {} does not equal stored {}", ereDoc.getDocId(), docID);
       }
-      final Iterable<Response> responses = outputStore.read(docID).arguments().responses();
-      final ResponseLinking linking =
-          ((DocumentSystemOutput2015) outputStore.read(docID)).linking();
+
+      final DocumentSystemOutput2015 systemOutputForDoc;
+
+      if (systemDocIds.contains(docID)) {
+        systemOutputForDoc = (DocumentSystemOutput2015)outputStore.read(docID);
+      } else if (permitMissingSystemDocuments) {
+        log.warn("No system output for gold standard docID {}. Proceeding on the assumption"
+            + " the system had no output because the user requested it.  This is a hack "
+            + "to work around the ColdStart to EAL converter in 2017 not outputting empty "
+            + "documents when a system had no output.");
+        systemOutputForDoc = DocumentSystemOutput2015.from(
+            ArgumentOutput.createWithConstantScore(docID, ImmutableSet.<Response>of(), 1.0),
+            ResponseLinking.builder().docID(docID).build());
+      } else {
+        throw new TACKBPEALException("No system output for gold standard document " + docID);
+      }
+
+      final Iterable<Response> responses = systemOutputForDoc.arguments().responses();
+      final ResponseLinking linking = systemOutputForDoc.linking();
       linking.copyWithFilteredResponses(in(ImmutableSet.copyOf(responses)));
       // feed this ERE doc/ KBP output pair to the scoring network
       input.inspect(EvalPair.of(ereDoc, new EREDocAndResponses(ereDoc, responses, linking)));
@@ -1115,6 +1143,12 @@ public final class ScoreKBPAgainstERE {
       return and(
           compose(in(inScopeEventTypes), eventType()),
           compose(not(in(bannedRoles)), eventArgumentType()));
+    }
+
+    @Provides
+    @PermitMissingSystemDocsP
+    boolean permitMissingSystemDocs(Parameters params) {
+      return params.getBoolean("enable2017ColdStartHack");
     }
   }
 }

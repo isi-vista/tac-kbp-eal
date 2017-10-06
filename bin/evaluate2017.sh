@@ -35,6 +35,7 @@ QUOTEFILTER=$(param_value $INPUT_PARAMS com.bbn.tac.eal.quoteFilter)
 DOCIDS_TO_SCORE=$(param_value $INPUT_PARAMS com.bbn.tac.eal.docIDsToScore)
 RICHERE_MAP=$(param_value $INPUT_PARAMS com.bbn.tac.eal.eremap)
 CORENLP_MAP=$(param_value $INPUT_PARAMS com.bbn.tac.eal.coreNLPDocIDMap)
+COLDSTARTHACK=$(param_value $INPUT_PARAMS com.bbn.tac.eal.isFromColdStart)
 
 rm -fr "$SCRATCH/processing"
 rm -fr "$SCRATCH/params"
@@ -94,6 +95,7 @@ bannedRoles: NONE
 # the 2017 evaluation used the same ontology as 2016
 eventTypesToScore: $KBPOPENREPO/data/2016.types.txt
 language: eng
+enable2017ColdStartHack: $COLDSTARTHACK
 EOF
     $KBPOPENREPO/tac-kbp-eal-scorer/target/appassembler/bin/scoreKBPAgainstERE $score_kbp_params 2>&1 | tee $LOG/scoreKBPAgainstERE.log
 
