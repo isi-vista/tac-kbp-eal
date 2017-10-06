@@ -67,6 +67,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Sets;
 import com.google.common.io.Files;
+import com.google.common.io.Resources;
 import com.google.common.reflect.TypeToken;
 import com.google.inject.AbstractModule;
 import com.google.inject.Guice;
@@ -224,6 +225,11 @@ public final class ScoreKBPAgainstERE {
 
     final InspectionNode<EvalPair<EREDocument, EREDocAndResponses>>
         input = InspectorTreeDSL.pairedInput(inputIsEREDoc, inputIsEREDocAndAnswerKey);
+
+    // write scoring README
+    Files.asCharSink(new File(outputDir, "README.scorer.txt"), Charsets.UTF_8).write(
+      Resources.asCharSource(Resources.getResource("/README.scorer.txt"), Charsets.UTF_8)
+          .read());
 
     // these will extract the scoring tuples from the KBP system input and ERE docs, respectively
     // we create these here because we will call their .finish method()s
