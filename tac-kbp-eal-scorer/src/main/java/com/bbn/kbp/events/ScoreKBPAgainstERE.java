@@ -222,7 +222,6 @@ public final class ScoreKBPAgainstERE {
   void processSystem(SystemOutputStore outputStore, File outputDir) throws IOException {
     outputDir.mkdirs();
 
-
     log.info("Scoring over {} documents", docIDsToScore.size());
 
     // on the gold side we take an ERE document as input
