@@ -1,5 +1,24 @@
 package com.bbn.kbp.events;
 
+import static com.bbn.bue.common.evaluation.InspectorTreeDSL.inspect;
+import static com.bbn.bue.common.evaluation.InspectorTreeDSL.transformBoth;
+import static com.bbn.bue.common.evaluation.InspectorTreeDSL.transformLeft;
+import static com.bbn.bue.common.evaluation.InspectorTreeDSL.transformRight;
+import static com.bbn.bue.common.evaluation.InspectorTreeDSL.transformed;
+import static com.bbn.kbp.events.DocLevelEventArgFunctions.eventArgumentType;
+import static com.bbn.kbp.events.DocLevelEventArgFunctions.eventType;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Predicates.and;
+import static com.google.common.base.Predicates.compose;
+import static com.google.common.base.Predicates.equalTo;
+import static com.google.common.base.Predicates.in;
+import static com.google.common.base.Predicates.not;
+import static com.google.common.collect.Iterables.concat;
+import static com.google.common.collect.Iterables.filter;
+import static com.google.common.collect.Iterables.getFirst;
+import static com.google.common.collect.Iterables.transform;
+
 import com.bbn.bue.common.Finishable;
 import com.bbn.bue.common.HasDocID;
 import com.bbn.bue.common.Inspector;
@@ -50,7 +69,6 @@ import com.bbn.nlp.corpora.ere.LinkRealis;
 import com.bbn.nlp.events.HasEventType;
 import com.bbn.nlp.parsing.HeadFinder;
 import com.bbn.nlp.parsing.HeadFinders;
-
 import com.google.common.base.Charsets;
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
@@ -77,12 +95,6 @@ import com.google.inject.TypeLiteral;
 import com.google.inject.assistedinject.Assisted;
 import com.google.inject.assistedinject.FactoryModuleBuilder;
 import com.google.inject.multibindings.MapBinder;
-
-import org.immutables.func.Functional;
-import org.immutables.value.Value;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.File;
 import java.io.IOException;
 import java.lang.annotation.ElementType;
@@ -95,29 +107,13 @@ import java.util.Random;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
 import javax.annotation.Nullable;
 import javax.inject.Inject;
 import javax.inject.Qualifier;
-
-import static com.bbn.bue.common.evaluation.InspectorTreeDSL.inspect;
-import static com.bbn.bue.common.evaluation.InspectorTreeDSL.transformBoth;
-import static com.bbn.bue.common.evaluation.InspectorTreeDSL.transformLeft;
-import static com.bbn.bue.common.evaluation.InspectorTreeDSL.transformRight;
-import static com.bbn.bue.common.evaluation.InspectorTreeDSL.transformed;
-import static com.bbn.kbp.events.DocLevelEventArgFunctions.eventArgumentType;
-import static com.bbn.kbp.events.DocLevelEventArgFunctions.eventType;
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Predicates.and;
-import static com.google.common.base.Predicates.compose;
-import static com.google.common.base.Predicates.equalTo;
-import static com.google.common.base.Predicates.in;
-import static com.google.common.base.Predicates.not;
-import static com.google.common.collect.Iterables.concat;
-import static com.google.common.collect.Iterables.filter;
-import static com.google.common.collect.Iterables.getFirst;
-import static com.google.common.collect.Iterables.transform;
+import org.immutables.func.Functional;
+import org.immutables.value.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Scores KBP 2016 event argument output against an ERE gold standard.  Scoring is in terms of
@@ -143,7 +139,7 @@ public final class ScoreKBPAgainstERE {
   private final Parameters params;
   private final ImmutableMap<String, ScoringEventObserver<DocLevelEventArg, DocLevelEventArg>>
       scoringEventObservers;
-  // we exclude text in quoted regions froms scoring
+  // we exclude text in quoted regions from scoring
   private final ResponsesAndLinkingFromEREExtractor responsesAndLinkingFromEREExtractor;
   private final ResponsesAndLinkingFromKBPExtractorFactory
       responsesAndLinkingFromKBPExtractorFactory;
