@@ -1,21 +1,18 @@
 package com.bbn.kbp.events;
 
-import com.bbn.bue.common.TextGroupPackageImmutable;
+import static com.google.common.base.Preconditions.checkArgument;
 
+import com.bbn.bue.common.TextGroupImmutable;
 import com.google.common.collect.ImmutableSet;
-
+import java.util.AbstractSet;
+import java.util.Iterator;
 import org.immutables.func.Functional;
 import org.immutables.value.Value;
 
-import java.util.AbstractSet;
-import java.util.Iterator;
-
-import static com.google.common.base.Preconditions.checkArgument;
-
-@TextGroupPackageImmutable
+@TextGroupImmutable
 @Functional
 @Value.Immutable
-public abstract class _ScoringEventFrame extends AbstractSet<DocLevelEventArg> {
+public abstract class ScoringEventFrame extends AbstractSet<DocLevelEventArg> {
 
   @Value.Parameter
   public abstract ImmutableSet<DocLevelEventArg> arguments();
@@ -30,9 +27,17 @@ public abstract class _ScoringEventFrame extends AbstractSet<DocLevelEventArg> {
     return arguments().size();
   }
 
+  public static ScoringEventFrame of(Iterable<? extends DocLevelEventArg> args) {
+    return new ScoringEventFrame.Builder().arguments(args).build();
+  }
+
   @Value.Check
   protected void check() {
     checkArgument(!arguments().isEmpty(), "Cannot create an event frame with no arguments");
+  }
+
+  public static class Builder extends ImmutableScoringEventFrame.Builder {
+
   }
 }
 

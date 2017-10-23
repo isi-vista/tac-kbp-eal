@@ -1,21 +1,18 @@
 package com.bbn.kbp.events;
 
-import com.bbn.bue.common.TextGroupPackageImmutable;
+import com.bbn.bue.common.TextGroupImmutable;
 import com.bbn.bue.common.symbols.Symbol;
-
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-
+import java.util.Iterator;
 import org.immutables.value.Value;
 
-import java.util.Iterator;
-
 @Value.Immutable
-@TextGroupPackageImmutable
-public abstract class _DocLevelArgLinking implements Iterable<ScoringEventFrame> {
+@TextGroupImmutable
+public abstract class DocLevelArgLinking implements Iterable<ScoringEventFrame> {
 
   @Value.Parameter
   public abstract Symbol docID();
@@ -30,7 +27,7 @@ public abstract class _DocLevelArgLinking implements Iterable<ScoringEventFrame>
 
   public final DocLevelArgLinking filterArguments(
       Predicate<? super DocLevelEventArg> argPredicate) {
-    final DocLevelArgLinking.Builder ret = DocLevelArgLinking.builder()
+    final DocLevelArgLinking.Builder ret = new DocLevelArgLinking.Builder()
         .docID(docID());
     for (final ScoringEventFrame eventFrame : eventFrames()) {
       final ImmutableSet<DocLevelEventArg> filteredFrame =
@@ -47,7 +44,7 @@ public abstract class _DocLevelArgLinking implements Iterable<ScoringEventFrame>
    */
   public final DocLevelArgLinking transformArguments(
       final Function<? super DocLevelEventArg, DocLevelEventArg> transformer) {
-    final DocLevelArgLinking.Builder ret = DocLevelArgLinking.builder();
+    final DocLevelArgLinking.Builder ret = new DocLevelArgLinking.Builder();
     ret.docID(docID());
     for (final ScoringEventFrame eventFrame : eventFrames()) {
       final ImmutableSet<DocLevelEventArg> transformedFrame =
@@ -59,5 +56,9 @@ public abstract class _DocLevelArgLinking implements Iterable<ScoringEventFrame>
 
   public final ImmutableSet<DocLevelEventArg> allArguments() {
     return ImmutableSet.copyOf(Iterables.concat(eventFrames()));
+  }
+
+  public static class Builder extends ImmutableDocLevelArgLinking.Builder {
+
   }
 }

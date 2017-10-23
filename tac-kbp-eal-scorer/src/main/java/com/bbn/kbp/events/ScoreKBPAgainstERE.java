@@ -42,11 +42,15 @@ import com.bbn.bue.common.parameters.Parameters;
 import com.bbn.bue.common.serialization.jackson.JacksonSerializer;
 import com.bbn.bue.common.symbols.Symbol;
 import com.bbn.bue.common.symbols.SymbolUtils;
+import com.bbn.kbp.events.ArgBreakdownConfiguration.Builder;
+import com.bbn.kbp.events.DocLevelEventArg.TypeRoleFunction;
 import com.bbn.kbp.events.ontology.EREToKBPEventOntologyMapper;
 import com.bbn.kbp.events.ontology.SimpleEventOntologyMapper;
 import com.bbn.kbp.events2014.ArgumentOutput;
 import com.bbn.kbp.events2014.CharOffsetSpan;
 import com.bbn.kbp.events2014.DocumentSystemOutput2015;
+import com.bbn.kbp.events2014.GoldArgumentCountsInspector;
+import com.bbn.kbp.events2014.GoldLinkingCountsInspector;
 import com.bbn.kbp.events2014.KBPRealis;
 import com.bbn.kbp.events2014.KBPTIMEXExpression;
 import com.bbn.kbp.events2014.Response;
@@ -67,6 +71,7 @@ import com.bbn.nlp.corpora.ere.ERELoader;
 import com.bbn.nlp.corpora.ere.ERESpan;
 import com.bbn.nlp.corpora.ere.LinkRealis;
 import com.bbn.nlp.events.HasEventType;
+import com.bbn.nlp.events.HasEventType.ExtractFunction;
 import com.bbn.nlp.parsing.HeadFinder;
 import com.bbn.nlp.parsing.HeadFinders;
 import com.google.common.base.Charsets;
@@ -110,8 +115,7 @@ import java.util.regex.Pattern;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
 import javax.inject.Qualifier;
-import org.immutables.func.Functional;
-import org.immutables.value.Value;
+import org.immutables.value.Value.Immutable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -356,16 +360,37 @@ public final class ScoreKBPAgainstERE {
         scoringEventObservers, new File(outputDir, "noRealis"));
   }
 
+  private static final ImmutableList<ArgBreakdownConfiguration> STATELESS_ARGUMENT_BREAKDOWNS =
+      ImmutableList.of(
+          new Builder().breakdownFunction(ExtractFunction.INSTANCE).tableName("EventType")
+              .directoryName("type").build(),
+          new Builder().breakdownFunction(TypeRoleFunction.INSTANCE).tableName("EventTypeRole")
+              .directoryName("typeRole").build(),
+          new Builder().breakdownFunction(ExtractMentionType.INSTANCE).tableName("MentionType")
+              .directoryName("mentionType").build(),
+          // genre extractor has state to track and log doc IDs it can't extract the genre from.
+          // However, we never query this instance, so we can safely use it in this static list
+          new Builder().breakdownFunction(GenreExtractor.create()).tableName("Genre")
+              .directoryName("genre").build()
+      );
+
   private static void argScoringSetup(
       final InspectorTreeNode<EvalPair<ImmutableSet<DocLevelEventArg>, ImmutableSet<DocLevelEventArg>>> inputAsSetsOfScoringTuples,
       final Iterable<? extends ScoringEventObserver<DocLevelEventArg, DocLevelEventArg>> scoringEventObservers,
       final File outputDir) {
+    inspect(inputAsSetsOfScoringTuples).with(GoldArgumentCountsInspector.createOutputtingTo(
+        new File(outputDir, "goldArgCounts")));
+
     // require exact match between the system arguments and the key responses
     final InspectorTreeNode<ProvenancedAlignment<DocLevelEventArg, DocLevelEventArg, DocLevelEventArg, DocLevelEventArg>>
         alignmentNode = transformed(inputAsSetsOfScoringTuples, EXACT_MATCH_ALIGNER);
 
     final File nonBootstrappedDir = new File(outputDir, "nonBootstrapped");
     nonBootstrappedDir.mkdirs();
+
+    // write counts from the gold standard which don't rely on system output at all
+
+
     // overall F score
     final AggregateBinaryFScoresInspector<DocLevelEventArg, DocLevelEventArg>
         scoreAndWriteOverallFScore =
@@ -374,39 +399,12 @@ public final class ScoreKBPAgainstERE {
             scoringEventObservers);
     inspect(alignmentNode).with(scoreAndWriteOverallFScore);
 
-    // bootstrapped per-event F-scores
-    final BinaryConfusionMatrixBootstrapStrategy<HasEventType> perEventBootstrapStrategy =
-        BinaryConfusionMatrixBootstrapStrategy.create(HasEventType.ExtractFunction.INSTANCE,
-            ImmutableSet.of(BrokenDownFMeasureAggregator
-                .create("EventType", new File(outputDir, "typeF"))));
-    final BootstrapInspector breakdownScoresByEventTypeWithBootstrapping =
-        BootstrapInspector.forStrategy(perEventBootstrapStrategy, 1000, new Random(0));
-    inspect(alignmentNode).with(breakdownScoresByEventTypeWithBootstrapping);
-
-    // bootstrapped, broken down by event type and argument role (F-scores)
-    final BinaryConfusionMatrixBootstrapStrategy<DocLevelEventArg> typeRoleBootstrapStrategy =
-        BinaryConfusionMatrixBootstrapStrategy.create(DocLevelEventArg.TypeRoleFunction.INSTANCE,
-            ImmutableSet.of(BrokenDownFMeasureAggregator
-                .create("EventTypeRole", new File(outputDir, "typeRoleF"))));
-    final BootstrapInspector breakdownScoresByEventTypeRoleWithBootstrapping =
-        BootstrapInspector.forStrategy(typeRoleBootstrapStrategy, 1000, new Random(0));
-    inspect(alignmentNode).with(breakdownScoresByEventTypeRoleWithBootstrapping);
-
-    // bootstrapped, broken down by name, nominal, pronoun, filler
-    final BinaryConfusionMatrixBootstrapStrategy<DocLevelEventArg> mentionTypeBootstrapStrategy =
-        BinaryConfusionMatrixBootstrapStrategy.create(ExtractMentionType.INSTANCE,
-            ImmutableSet.of(BrokenDownFMeasureAggregator
-                .create("MentionType", new File(outputDir, "mentionTypeF"))));
-    final BootstrapInspector breakdownScoresByMentionTypeWithBootstrapping =
-        BootstrapInspector.forStrategy(mentionTypeBootstrapStrategy, 1000, new Random(0));
-    inspect(alignmentNode).with(breakdownScoresByMentionTypeWithBootstrapping);
-
     // "arg" score with weighted TP/FP
     final ArgumentScoringInspector argScorer =
         ArgumentScoringInspector.createOutputtingTo(nonBootstrappedDir);
     inspect(alignmentNode).with(argScorer);
 
-    // bootstrapped arg scores
+    // bootstrapped aggregate arg scores
     final BinaryConfusionMatrixBootstrapStrategy<HasEventType> argScoreBootstrapStrategy =
         BinaryConfusionMatrixBootstrapStrategy.create(
             Functions.constant("Aggregate"),
@@ -421,7 +419,30 @@ public final class ScoreKBPAgainstERE {
         .forStringifierAndOutputDir(Functions.<HasDocID>toStringFunction(), outputDir);
     inspect(alignmentNode).with(logWrongAnswers);
 
+    // for each requested way of breaking down scores (e.g. by event type), we provide both
+    // F scores and official eval scores ("arg scores")
+    for (ArgBreakdownConfiguration argumentBreakdown : STATELESS_ARGUMENT_BREAKDOWNS) {
+      final BinaryConfusionMatrixBootstrapStrategy<DocLevelEventArg> brokenDownFScoreBootstrapStrategy =
+          BinaryConfusionMatrixBootstrapStrategy.create(argumentBreakdown.breakdownFunction(),
+              ImmutableSet.of(BrokenDownFMeasureAggregator
+                  .create(argumentBreakdown.tableName(),
+                      new File(outputDir, argumentBreakdown.directoryName() + "F"))));
+      final BootstrapInspector brokenDownFScoresWithBootstrapping =
+          BootstrapInspector.forStrategy(brokenDownFScoreBootstrapStrategy, 1000, new Random(0));
+      inspect(alignmentNode).with(brokenDownFScoresWithBootstrapping);
 
+      // bootstrapped aggregate arg scores
+      final BinaryConfusionMatrixBootstrapStrategy<DocLevelEventArg> brokenDownArgScoreBootstrapStrategy =
+          BinaryConfusionMatrixBootstrapStrategy.create(
+              argumentBreakdown.breakdownFunction(),
+              ImmutableSet.of(new BrokenDownLinearScoreAggregator.Builder()
+                  .name(argumentBreakdown.tableName())
+                  .outputDir(new File(outputDir, argumentBreakdown.directoryName() + "ArgScore"))
+                  .alpha(0.25).build()));
+      final BootstrapInspector brokenDownArgScoreWithBootstrapping =
+          BootstrapInspector.forStrategy(brokenDownArgScoreBootstrapStrategy, 1000, new Random(0));
+      inspect(alignmentNode).with(brokenDownArgScoreWithBootstrapping);
+    }
   }
 
   private static void linkingScoringSetup(
@@ -434,6 +455,9 @@ public final class ScoreKBPAgainstERE {
     {
       final InspectorTreeNode<EvalPair<DocLevelArgLinking, DocLevelArgLinking>>
           linkingNode = transformBoth(filteredForRealis, ResponsesAndLinkingFunctions.linking());
+
+      inspect(linkingNode)
+          .with(GoldLinkingCountsInspector.createOutputtingTo(new File(outputDir, "goldCounts")));
 
       // we throw out any system responses not found in the key before scoring linking
       final InspectorTreeNode<EvalPair<DocLevelArgLinking, DocLevelArgLinking>>
@@ -761,10 +785,10 @@ public final class ScoreKBPAgainstERE {
     public ResponsesAndLinking apply(final EREDocument doc) {
       final ImmutableSet.Builder<DocLevelEventArg> ret = ImmutableSet.builder();
       // every event mention argument within a hopper is linked
-      final DocLevelArgLinking.Builder linking = DocLevelArgLinking.builder()
+      final DocLevelArgLinking.Builder linking = new DocLevelArgLinking.Builder()
           .docID(Symbol.from(doc.getDocId()));
       for (final EREEvent ereEvent : doc.getEvents()) {
-        final ScoringEventFrame.Builder eventFrame = ScoringEventFrame.builder();
+        final ScoringEventFrame.Builder eventFrame = new ScoringEventFrame.Builder();
         boolean addedArg = false;
         for (final EREEventMention ereEventMention : ereEvent.getEventMentions()) {
           // events from quoted regions are invalid
@@ -985,10 +1009,10 @@ public final class ScoreKBPAgainstERE {
     ResponsesAndLinking fromResponses(final ImmutableSet<Response> originalResponses,
         final ImmutableMap<Response, DocLevelEventArg> responseToDocLevelEventArg,
         final ResponseLinking responseLinking) {
-      final DocLevelArgLinking.Builder linkingBuilder = DocLevelArgLinking.builder()
+      final DocLevelArgLinking.Builder linkingBuilder = new DocLevelArgLinking.Builder()
           .docID(responseLinking.docID());
       for (final ResponseSet rs : responseLinking.responseSets()) {
-        final ScoringEventFrame.Builder eventFrameBuilder = ScoringEventFrame.builder();
+        final ScoringEventFrame.Builder eventFrameBuilder = new ScoringEventFrame.Builder();
         boolean addedArg = false;
         for (final Response response : rs) {
           if (responseToDocLevelEventArg.containsKey(response)) {
@@ -1148,54 +1172,6 @@ public final class ScoreKBPAgainstERE {
   }
 }
 
-@Value.Immutable
-@Functional
-@TextGroupImmutable
-abstract class ResponsesAndLinking {
-
-  @Value.Parameter
-  public abstract ImmutableSet<DocLevelEventArg> args();
-
-  @Value.Parameter
-  public abstract DocLevelArgLinking linking();
-
-  public static ResponsesAndLinking of(Iterable<? extends DocLevelEventArg> args,
-      DocLevelArgLinking linking) {
-    return new Builder().args(args).linking(linking).build();
-  }
-
-  @Value.Check
-  protected void check() {
-    checkArgument(args().containsAll(ImmutableSet.copyOf(concat(linking()))));
-  }
-
-  public final ResponsesAndLinking filter(Predicate<? super DocLevelEventArg> predicate) {
-    return ResponsesAndLinking.of(
-        Iterables.filter(args(), predicate),
-        linking().filterArguments(predicate));
-  }
-
-  public final ResponsesAndLinking transform(
-      final Function<? super DocLevelEventArg, DocLevelEventArg> transformer) {
-    return ResponsesAndLinking
-        .of(Iterables.transform(args(), transformer), linking().transformArguments(transformer));
-  }
-
-  static Function<ResponsesAndLinking, ResponsesAndLinking> filterFunction(
-      final Predicate<? super DocLevelEventArg> predicate) {
-    return new Function<ResponsesAndLinking, ResponsesAndLinking>() {
-      @Override
-      public ResponsesAndLinking apply(final ResponsesAndLinking input) {
-        return input.filter(predicate);
-      }
-    };
-  }
-
-  public static class Builder extends ImmutableResponsesAndLinking.Builder {
-
-  }
-}
-
 final class EREDocAndResponses {
 
   private final EREDocument ereDoc;
@@ -1270,3 +1246,31 @@ enum ExtractMentionType implements Function<DocLevelEventArg, String> {
     }
   }
 }
+
+/**
+ * Describes a way of breaking down the scores for argument scoring.  Arguments are grouped and
+ * sub-scores are computed according to the result of {@link #directoryName()}.
+ */
+@TextGroupImmutable
+@Immutable
+abstract class ArgBreakdownConfiguration {
+
+  /**
+   * Prefix of the directory to write the results of this output to.
+   */
+  abstract String directoryName();
+
+  /**
+   * Human-readable description of this output.  This could be collapsed with {@link
+   * #directoryName()} but is kept separate for backward compatibility with scripts which parse the
+   * scoring output.
+   */
+  abstract String tableName();
+
+  abstract Function<? super DocLevelEventArg, String> breakdownFunction();
+
+  public static class Builder extends ImmutableArgBreakdownConfiguration.Builder {
+
+  }
+}
+

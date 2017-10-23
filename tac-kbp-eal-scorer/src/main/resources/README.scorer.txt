@@ -30,6 +30,7 @@ Each of the first two directories has the following structure:
                            corpus without bootstrapping. Also includes argument precision,
                             recall, and F1 scores to supplemental the official argument scoring
                             metric. *These are not the official eval scores* (see above)
+    goldCounts/ - the counts for various scoreable arguments in the unbootstrapped gold standard
 
 Each of the bootstrapped directories has the following files:
    * X.bootstrapped.txt - human readable files with 0.5%, 2.5%, 5.0%, 25.0%,
