@@ -211,10 +211,10 @@ This artifact is not deployed to Maven Central, so you will need to
 install it in your local repository as described above.
 
 ## Contact
-For questions concerning the software, please contact `rgabbard@bbn.com`.  If you
+For questions concerning the software, please contact `gabbard@isi.edu`.  If you
 have bugs or feature requests, you can use the GitHub Issue Tracker. The issue tracker is
 preferred so future users can benefit from the answers to your questions. To track changes to
-this repository, follow https://github.com/BBN-E/tac-kbp-eal/commits/master.atom in an RSS reader.
+this repository, follow https://github.com/isi-nlp/tac-kbp-eal/commits/master.atom in an RSS reader.
 
 <sub>**Export Control Marking**</sub>
 
