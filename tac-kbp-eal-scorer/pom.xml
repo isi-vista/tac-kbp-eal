@@ -83,11 +83,6 @@
         </dependency>
 
         <dependency>
-            <groupId>com.bbn.bue</groupId>
-            <artifactId>common-core-jackson-serialization-open</artifactId>
-        </dependency>
-
-        <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <!-- <scope>test</scope> -->
@@ -149,6 +144,23 @@
             <artifactId>guice-multibindings</artifactId>
             <version>4.0</version>
         </dependency>
+<dependency>
+          <groupId>com.fasterxml.jackson.core</groupId>
+          <artifactId>jackson-databind</artifactId>
+          <version>2.7.5</version>
+          <!-- this is just for some annotations, don't need it at runtime unless you
+          are using Jackson -->
+          <optional>true</optional>
+      </dependency>
+<dependency>
+          <groupId>com.fasterxml.jackson.datatype</groupId>
+          <artifactId>jackson-datatype-guava</artifactId>
+          <version>2.7.5</version>
+          <optional>true</optional>
+      </dependency>
+
+
+
     </dependencies>
 
 
