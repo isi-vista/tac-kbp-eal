@@ -11,11 +11,9 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Predicates.and;
 import static com.google.common.base.Predicates.compose;
-import static com.google.common.base.Predicates.equalTo;
 import static com.google.common.base.Predicates.in;
 import static com.google.common.base.Predicates.not;
 import static com.google.common.collect.Iterables.concat;
-import static com.google.common.collect.Iterables.filter;
 import static com.google.common.collect.Iterables.getFirst;
 import static com.google.common.collect.Iterables.transform;
 
@@ -388,9 +386,6 @@ public final class ScoreKBPAgainstERE {
     final File nonBootstrappedDir = new File(outputDir, "nonBootstrapped");
     nonBootstrappedDir.mkdirs();
 
-    // write counts from the gold standard which don't rely on system output at all
-
-
     // overall F score
     final AggregateBinaryFScoresInspector<DocLevelEventArg, DocLevelEventArg>
         scoreAndWriteOverallFScore =
@@ -403,6 +398,17 @@ public final class ScoreKBPAgainstERE {
     final ArgumentScoringInspector argScorer =
         ArgumentScoringInspector.createOutputtingTo(nonBootstrappedDir);
     inspect(alignmentNode).with(argScorer);
+
+    // bootstrapped aggregate arg scores
+    final BinaryConfusionMatrixBootstrapStrategy<HasEventType> f1BootstrapStrategy =
+        BinaryConfusionMatrixBootstrapStrategy.create(
+            Functions.constant("Aggregate"),
+            ImmutableSet.of(BrokenDownFMeasureAggregator.create("ArgF1",
+                new File(outputDir, "f1Scores"))));
+    final BootstrapInspector f1ScoreWithBootstrapping =
+        BootstrapInspector.forStrategy(f1BootstrapStrategy, 1000, new Random(0));
+    inspect(alignmentNode).with(f1ScoreWithBootstrapping);
+
 
     // bootstrapped aggregate arg scores
     final BinaryConfusionMatrixBootstrapStrategy<HasEventType> argScoreBootstrapStrategy =
@@ -500,8 +506,9 @@ public final class ScoreKBPAgainstERE {
     public EvalPair<ResponsesAndLinking, ResponsesAndLinking> apply(
         final EvalPair<ResponsesAndLinking, ResponsesAndLinking> input) {
       // find all Life.Die event arguments
-      final ImmutableSet<DocLevelEventArg> keyArgs = ImmutableSet.copyOf(filter(input.key().args(),
-          compose(equalTo(LifeDie), eventType())));
+      final ImmutableSet<DocLevelEventArg> keyArgs =
+          input.key().args().stream().filter(x -> x.eventType().equalTo(LifeDie))
+              .collect(ImmutableSet.toImmutableSet());
       // get all possible candidate Life.Injure event arguments that could be derived from these Life.Die arguments
       final ImmutableSet<DocLevelEventArg> argsToIgnore =
           ImmutableSet.copyOf(transform(keyArgs, LifeDieToLifeInjure.INSTANCE));
@@ -538,11 +545,11 @@ public final class ScoreKBPAgainstERE {
         final EvalPair<ResponsesAndLinking, ResponsesAndLinking> input) {
       final ImmutableListMultimap<Symbol, DocLevelEventArg> goldTemporalArgsByEventType =
           FluentIterable.from(input.key().args())
-              .filter(compose(equalTo(TIME), eventArgumentType()))
+              .filter(x -> x.eventArgumentType().equalTo(TIME))
               .index(eventType());
       final ImmutableListMultimap<Symbol, DocLevelEventArg> systemTemporalArgsByEventType =
           FluentIterable.from(input.test().args())
-              .filter(compose(equalTo(TIME), eventArgumentType()))
+              .filter(x -> x.eventArgumentType().equalTo(TIME))
               .index(eventType());
 
       final ImmutableSet.Builder<DocLevelEventArg> toDeleteB = ImmutableSet.builder();

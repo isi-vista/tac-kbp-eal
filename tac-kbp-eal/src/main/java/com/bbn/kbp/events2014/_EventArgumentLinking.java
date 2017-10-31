@@ -1,26 +1,24 @@
 package com.bbn.kbp.events2014;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.collect.ImmutableSet.toImmutableSet;
+
 import com.bbn.bue.common.TextGroupPublicImmutable;
 import com.bbn.bue.common.collections.CollectionUtils;
 import com.bbn.bue.common.symbols.Symbol;
-
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
-import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
-
+import java.util.Set;
+import java.util.function.Predicate;
 import org.immutables.func.Functional;
 import org.immutables.value.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.Set;
-
-import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * Represents a grouping of document-level event arguments into event frames/hopper. Optionally
@@ -89,15 +87,15 @@ abstract class _EventArgumentLinking {
     final ImmutableSet.Builder<TypeRoleFillerRealisSet> newEventFrames = ImmutableSet.builder();
 
     for (final TypeRoleFillerRealisSet eventFrame : eventFrames()) {
-      final Set<TypeRoleFillerRealis> filteredElements = FluentIterable.from(eventFrame.asSet())
-          .filter(toKeepPredicate).toSet();
+      final Set<TypeRoleFillerRealis> filteredElements = eventFrame.asSet().stream()
+      .filter(toKeepPredicate).collect(toImmutableSet());
       if (!filteredElements.isEmpty()) {
         newEventFrames.add(TypeRoleFillerRealisSet.create(filteredElements));
       }
     }
 
     return EventArgumentLinking.builder().docID(docID()).eventFrames(newEventFrames.build())
-        .incomplete(Iterables.filter(incomplete(), toKeepPredicate)).build();
+        .incomplete(incomplete().stream().filter(toKeepPredicate)::iterator).build();
   }
 
   public ImmutableSet<Set<TypeRoleFillerRealis>> linkedAsSetOfSets() {

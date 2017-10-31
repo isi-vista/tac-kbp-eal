@@ -1,13 +1,21 @@
 package com.bbn.kbp.events2014;
 
+import static com.bbn.bue.common.collections.IterableUtils.allEqual;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.Iterables.all;
+import static com.google.common.collect.Iterables.getFirst;
+import static com.google.common.collect.Iterables.isEmpty;
+import static com.google.common.collect.Iterables.transform;
+
 import com.bbn.bue.common.annotations.MoveToBUECommon;
 import com.bbn.bue.common.collections.MapUtils;
 import com.bbn.bue.common.scoring.Scored;
 import com.bbn.bue.common.scoring.Scoreds;
 import com.bbn.bue.common.symbols.Symbol;
-
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
@@ -21,21 +29,12 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.Range;
 import com.google.common.collect.Sets;
-
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
-
-import static com.bbn.bue.common.collections.IterableUtils.allEqual;
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.collect.Iterables.all;
-import static com.google.common.collect.Iterables.getFirst;
-import static com.google.common.collect.Iterables.isEmpty;
-import static com.google.common.collect.Iterables.transform;
 
 /**
  * Represents a KBP 2014 event argument attachment system's output on a document.
@@ -275,7 +274,7 @@ public final class ArgumentOutput {
 
   @Override
   public String toString() {
-    return Objects.toStringHelper(this).add("docID", docId).add("scoredResponses",
+    return MoreObjects.toStringHelper(this).add("docID", docId).add("scoredResponses",
         scoredResponses()).toString();
   }
 

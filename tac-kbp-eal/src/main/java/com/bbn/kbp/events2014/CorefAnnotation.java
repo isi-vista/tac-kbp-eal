@@ -1,9 +1,17 @@
 package com.bbn.kbp.events2014;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.base.Predicates.in;
+import static com.google.common.base.Predicates.not;
+import static com.google.common.collect.Iterables.getFirst;
+import static com.google.common.collect.Multisets.copyHighestCountFirst;
+
 import com.bbn.bue.common.StringUtils;
 import com.bbn.bue.common.symbols.Symbol;
-
 import com.google.common.base.Function;
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
@@ -17,24 +25,14 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.Sets;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Random;
 import java.util.Set;
-
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.base.Predicates.in;
-import static com.google.common.base.Predicates.not;
-import static com.google.common.collect.Iterables.getFirst;
-import static com.google.common.collect.Multisets.copyHighestCountFirst;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Annotation of CAS coreference decisions. This is obsolete for the 2016 evaluation where
@@ -430,7 +428,7 @@ public final class CorefAnnotation {
   }
 
   public String toString() {
-    return Objects.toStringHelper(this)
+    return MoreObjects.toStringHelper(this)
         .add("docID", docId)
         .add("coreffed", "{" + StringUtils.NewlineJoiner.join(CASesToIDs.entrySet()) + "}")
         .add("uncoreffed", "{" + StringUtils.NewlineJoiner.join(unannotatedCASes()) + "}")

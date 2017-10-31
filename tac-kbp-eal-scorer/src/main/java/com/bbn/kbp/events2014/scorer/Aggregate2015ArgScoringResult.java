@@ -3,6 +3,7 @@ package com.bbn.kbp.events2014.scorer;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
+import org.immutables.func.Functional;
 import org.immutables.value.Value;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -10,6 +11,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 @Value.Immutable
 @JsonSerialize(as = ImmutableAggregate2015ArgScoringResult.class)
 @JsonDeserialize(as = ImmutableAggregate2015ArgScoringResult.class)
+@Functional
 public abstract class Aggregate2015ArgScoringResult {
 
   public abstract double precision();
